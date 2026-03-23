@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
     /^\/league\/[^/]+\/matchups\/\d+$/,
     /^\/league\/[^/]+\/transactions\/\d+$/,
     /^\/players\/nfl\/trending\/add$/,
+    /^\/players\/nfl$/,
   ];
 
   const isValid = validPaths.some((pattern) => pattern.test(path.split("?")[0]));
@@ -32,9 +33,10 @@ export async function GET(req: NextRequest) {
 
   try {
     const url = `${SLEEPER_BASE}${path}`;
+    const isPlayersEndpoint = path === "/players/nfl";
     const res = await fetch(url, {
       headers: { "User-Agent": "SleeperFantasyIntel/1.0" },
-      next: { revalidate: 60 }, // cache for 60s
+      next: { revalidate: isPlayersEndpoint ? 86400 : 60 }, // players: 24h, rest: 60s
     });
 
     if (!res.ok) {

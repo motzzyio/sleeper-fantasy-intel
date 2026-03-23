@@ -8,7 +8,7 @@ import InSeasonTab from "./InSeasonTab";
 import StandingsTab from "./StandingsTab";
 import type {
   NFLState, SleeperUser, League, Roster, LeagueUser,
-  Draft, DraftPick, Matchup, Transaction, TrendingPlayer,
+  Draft, DraftPick, Matchup, Transaction, TrendingPlayer, PlayerMap,
 } from "@/lib/types";
 
 interface Props {
@@ -39,6 +39,7 @@ export default function Dashboard({ username, onReset }: Props) {
   const [matchups, setMatchups] = useState<Matchup[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [trending, setTrending] = useState<TrendingPlayer[]>([]);
+  const [playerMap, setPlayerMap] = useState<PlayerMap>({});
   const [tab, setTab] = useState<TabId>("draft");
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
@@ -103,14 +104,16 @@ export default function Dashboard({ username, onReset }: Props) {
 
       setStep(4);
       const week = Math.min(st?.week || 1, 18);
-      const [mu, tx, tr]: [Matchup[], Transaction[], TrendingPlayer[]] = await Promise.all([
+      const [mu, tx, tr, pm]: [Matchup[], Transaction[], TrendingPlayer[], PlayerMap] = await Promise.all([
         api.getMatchups(lg.league_id, week),
         api.getTransactions(lg.league_id, week),
         api.getTrending(),
+        api.getPlayers(),
       ]);
       setMatchups(Array.isArray(mu) ? mu : []);
       setTransactions(Array.isArray(tx) ? tx : []);
       setTrending(Array.isArray(tr) ? tr : []);
+      setPlayerMap(pm && typeof pm === "object" ? pm : {});
 
       setDone(true);
     } catch (e: any) {
@@ -243,6 +246,7 @@ export default function Dashboard({ username, onReset }: Props) {
                 trending={trending}
                 nflState={nflState}
                 userId={userId}
+                playerMap={playerMap}
               />
             )}
             {tab === "standings" && (

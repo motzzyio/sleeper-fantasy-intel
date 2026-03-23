@@ -120,3 +120,16 @@ export interface TrendingPlayer {
   player_id: string;
   count: number;
 }
+
+// Sleeper /players/nfl returns a map of player_id -> PlayerInfo
+export interface PlayerInfo {
+  player_id: string;
+  first_name: string;
+  last_name: string;
+  position: string;
+  team: string | null;
+  status: string | null;
+  injury_status: string | null;
+}
+
+export type PlayerMap = Record<string, PlayerInfo>;

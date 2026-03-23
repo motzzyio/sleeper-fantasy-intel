@@ -20,13 +20,27 @@ export const api = {
     sleeperFetch(`/league/${id}/transactions/${week}`),
   getTrending: () =>
     sleeperFetch("/players/nfl/trending/add?lookback_hours=24&limit=25"),
+  // Full player name/position lookup — cached 24h server-side
+  getPlayers: () => sleeperFetch("/players/nfl"),
 };
 
 export const askAI = async (system: string, prompt: string): Promise<string> => {
   const res = await fetch("/api/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ system, prompt }),
+    body: JSON.stringify({ system, prompt, useWebSearch: false }),
+  });
+  if (!res.ok) throw new Error("AI request failed");
+  const data = await res.json();
+  return data.text ?? "";
+};
+
+// Proactive AI with live web search for current injury/news data
+export const askAIWithSearch = async (system: string, prompt: string): Promise<string> => {
+  const res = await fetch("/api/ai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ system, prompt, useWebSearch: true }),
   });
   if (!res.ok) throw new Error("AI request failed");
   const data = await res.json();

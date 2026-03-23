@@ -1,9 +1,12 @@
 "use client";
-import { useState } from "react";
-import { Card, SectionTitle, AIBox, AIInput } from "./ui";
+import { useState, useEffect } from "react";
+import { Card, SectionTitle, AIBox, AIInput, Spinner } from "./ui";
 import { useIsMobile } from "@/lib/useIsMobile";
-import { askAI } from "@/lib/api";
-import type { League, Roster, LeagueUser, Matchup, Transaction, TrendingPlayer, NFLState } from "@/lib/types";
+import { askAI, askAIWithSearch } from "@/lib/api";
+import type {
+  League, Roster, LeagueUser, Matchup, Transaction,
+  TrendingPlayer, NFLState, PlayerMap,
+} from "@/lib/types";
 
 interface Props {
   league: League;
@@ -14,6 +17,7 @@ interface Props {
   trending: TrendingPlayer[];
   nflState: NFLState;
   userId: string;
+  playerMap: PlayerMap;
 }
 
 const MODES = [
@@ -30,33 +34,57 @@ const TX_COLOR: Record<string, { bg: string; text: string }> = {
 };
 
 export default function InSeasonTab({
-  league, rosters, leagueUsers, matchups, transactions, trending, nflState, userId,
+  league, rosters, leagueUsers, matchups, transactions,
+  trending, nflState, userId, playerMap,
 }: Props) {
   const isMobile = useIsMobile();
-  const [query, setQuery]     = useState("");
-  const [aiText, setAiText]   = useState("");
-  const [busy, setBusy]       = useState(false);
-  const [mode, setMode]       = useState("waiver");
+  const [query, setQuery]             = useState("");
+  const [aiText, setAiText]           = useState("");
+  const [busy, setBusy]               = useState(false);
+  const [mode, setMode]               = useState("waiver");
+  const [proactiveText, setProactive] = useState("");
+  const [proactiveBusy, setProactiveBusy] = useState(false);
+  const [proactiveLoaded, setProactiveLoaded] = useState(false);
 
-  // ── Lookup maps ──────────────────────────────────────────────────────────
+  // ── Lookup maps ────────────────────────────────────────────────────────────
   const uMap: Record<string, string> = {};
   leagueUsers.forEach(u => { uMap[u.user_id] = u.display_name || u.username; });
 
   const rosterToOwner: Record<number, string> = {};
   rosters.forEach(r => { rosterToOwner[r.roster_id] = uMap[r.owner_id] || `Team ${r.roster_id}`; });
 
-  const myRoster  = rosters.find(r => r.owner_id === userId);
-  const myMatchup = myRoster ? matchups.find(m => m.roster_id === myRoster.roster_id) : null;
-  const week      = nflState?.week || 1;
+  const myRoster   = rosters.find(r => r.owner_id === userId);
+  const myMatchup  = myRoster ? matchups.find(m => m.roster_id === myRoster.roster_id) : null;
+  const week       = nflState?.week || 1;
 
-  // ── Opponent score this week ─────────────────────────────────────────────
   const opponentMatchup = myMatchup
     ? matchups.find(m => m.matchup_id === myMatchup.matchup_id && m.roster_id !== myMatchup.roster_id)
     : null;
   const opponentName = opponentMatchup ? rosterToOwner[opponentMatchup.roster_id] : null;
 
-  // ── Transaction helpers ──────────────────────────────────────────────────
-  // In Sleeper, adds/drops values are the roster_id that received/lost the player
+  // ── Player name resolution ─────────────────────────────────────────────────
+  const playerName = (id: string): string => {
+    const p = playerMap[id];
+    if (!p) return id; // fallback to raw ID if not found
+    const pos  = p.position ? ` (${p.position})` : "";
+    const team = p.team ? ` · ${p.team}` : "";
+    return `${p.first_name} ${p.last_name}${pos}${team}`;
+  };
+
+  const playerNameShort = (id: string): string => {
+    const p = playerMap[id];
+    if (!p) return id;
+    return `${p.first_name} ${p.last_name}`;
+  };
+
+  // Injury badge for trending players
+  const injuryBadge = (id: string): string | null => {
+    const p = playerMap[id];
+    if (!p?.injury_status) return null;
+    return p.injury_status;
+  };
+
+  // ── Transaction helpers ────────────────────────────────────────────────────
   const getTxTeams = (tx: Transaction): string[] => {
     const ids = new Set<number>();
     if (tx.adds)  Object.values(tx.adds).forEach(id => ids.add(id as number));
@@ -65,29 +93,69 @@ export default function InSeasonTab({
     return Array.from(ids).map(id => rosterToOwner[id] || `Team ${id}`);
   };
 
-  // ── AI prompts ───────────────────────────────────────────────────────────
+  // ── Build roster context for AI (names, not IDs) ───────────────────────────
+  const myRosterNames = (myRoster?.players || []).map(id => playerName(id)).join(", ");
+  const myStarterNames = (myRoster?.starters || []).map(id => playerName(id)).join(", ");
+
+  // ── Proactive AI — fires on mount with web search ─────────────────────────
+  useEffect(() => {
+    if (!myRoster || proactiveLoaded) return;
+    runProactive();
+  }, [myRoster?.roster_id]);
+
+  const runProactive = async () => {
+    setProactiveBusy(true);
+    setProactive("");
+    const sc = league.scoring_settings;
+
+    const system = `You are a proactive fantasy football advisor with access to live web search. 
+Search for current NFL injury reports, waiver wire rankings, and start/sit advice for Week ${week}.
+Then give the user 3–5 specific, prioritised action items they should take THIS WEEK based on their actual roster.
+Format as numbered action items. Each should have a clear action verb (Add, Drop, Start, Sit, Trade for, etc).
+Keep it under 350 words. Be direct and specific — mention real player names.`;
+
+    const prompt = `My fantasy league: ${league.name} | Week ${week} | PPR:${sc.rec ?? 0} | Teams:${league.settings.num_teams}
+
+My current roster: ${myRosterNames || "(no player data yet)"}
+My current starters: ${myStarterNames || "(no starter data yet)"}
+
+Trending adds in my league right now: ${trending.slice(0, 8).map((t, i) => `#${i + 1} ${playerNameShort(t.player_id)} (${t.count} adds)`).join(", ")}
+
+Search the web for current Week ${week} injury news, waiver wire rankings, and matchup-based start/sit analysis. Then give me 3–5 specific actions I should take this week, in priority order.`;
+
+    try {
+      const res = await askAIWithSearch(system, prompt);
+      setProactive(res);
+    } catch {
+      setProactive("Unable to load proactive suggestions. Check your API key supports web search.");
+    }
+    setProactiveBusy(false);
+    setProactiveLoaded(true);
+  };
+
+  // ── Reactive AI (mode-based) ───────────────────────────────────────────────
   const modePrompts: Record<string, string> = {
-    waiver:   `Week ${week} waiver wire advice. Trending adds (last 24h): ${trending.slice(0, 12).map((t, i) => `#${i + 1} ${t.player_id}(${t.count}x)`).join(", ")}. Recent league transactions: ${transactions.slice(0, 6).map(t => `[${t.type}] +${Object.keys(t.adds || {}).join(",")}`).join(" | ")}. My roster player IDs: ${(myRoster?.players || []).join(", ")}. Who should I target on waivers and who's safe to drop?`,
-    startsit: `Optimise my Week ${week} lineup. Current starters: ${(myRoster?.starters || []).join(", ")}. Full roster: ${(myRoster?.players || []).join(", ")}. Who should I start or sit? Flag any clear upgrades on my bench.`,
-    trade:    `Trade strategy for Week ${week}. My players: ${(myRoster?.players || []).join(", ")}. Give me: (1) who to sell high on from my roster, (2) what positions to target via trade, (3) a specific approach to maximise my team's ceiling.`,
-    injury:   `Week ${week} injury & bye planning. My roster: ${(myRoster?.players || []).join(", ")}. Flag bye weeks for weeks ${week}–${week + 2}, flag common injury concerns at this stage of season, suggest contingency moves.`,
+    waiver: `Week ${week} waiver wire advice. Trending adds (last 24h): ${trending.slice(0, 10).map((t, i) => `#${i + 1} ${playerName(t.player_id)} — ${t.count} adds`).join(", ")}. My roster: ${myRosterNames}. Who should I target on waivers and who is safe to drop? Search for current week waiver wire rankings to support your answer.`,
+    startsit: `Optimise my Week ${week} lineup. My current starters: ${myStarterNames}. My full roster: ${myRosterNames}. Search for Week ${week} matchup-based start/sit analysis and injury reports. Who should I start or sit? Flag any clear upgrades from my bench.`,
+    trade: `Trade strategy for Week ${week}. My roster: ${myRosterNames}. Search for current player values and trade advice. Give me: (1) who to sell high on, (2) what positions to buy, (3) a specific trade target strategy.`,
+    injury: `Week ${week} injury and bye planning. My roster: ${myRosterNames}. Search for the latest injury reports and bye week schedules for weeks ${week}–${week + 2}. Flag any players I need to address urgently and suggest contingency moves.`,
   };
 
   const runAI = async () => {
     setBusy(true);
     setAiText("");
     const sc = league.scoring_settings;
-    const system = `You are a sharp, no-fluff fantasy football in-season manager. Give specific, week-relevant, actionable advice. Use bullet points. Be direct and concise. Keep your response under 450 words.`;
-    const prompt = `LEAGUE: ${league.name} | Week ${week} | PPR:${sc.rec ?? 0} | Teams:${league.settings.num_teams}\n${query ? `QUESTION: ${query}` : modePrompts[mode]}`;
+    const system = `You are a sharp fantasy football in-season manager with access to web search. Search for current Week ${week} NFL data to support your advice. Give specific, actionable recommendations. Use bullet points. Keep under 450 words.`;
+    const prompt = `LEAGUE: ${league.name} | Week ${week} | PPR:${sc.rec ?? 0} | Teams:${league.settings.num_teams}\n${query ? `QUESTION: ${query}\nMy roster: ${myRosterNames}` : modePrompts[mode]}`;
     try {
-      setAiText(await askAI(system, prompt));
+      // Reactive queries also use web search for current data
+      setAiText(await askAIWithSearch(system, prompt));
     } catch {
       setAiText("Error fetching AI analysis. Check your API key.");
     }
     setBusy(false);
   };
 
-  // ── Shared style tokens ──────────────────────────────────────────────────
   const scoreFontSize = isMobile ? 30 : 38;
 
   return (
@@ -117,7 +185,34 @@ export default function InSeasonTab({
         </Card>
       </div>
 
-      {/* Trending — horizontal scroll strip on mobile */}
+      {/* ── Proactive Suggested Moves ────────────────────────────────────────── */}
+      <Card style={{ borderColor: "var(--accent-border)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <SectionTitle>⚡ Suggested Moves — Week {week}</SectionTitle>
+          {proactiveLoaded && !proactiveBusy && (
+            <button onClick={runProactive} style={{
+              background: "none", border: "1px solid var(--border)", borderRadius: 6,
+              padding: "4px 10px", fontSize: 11, color: "var(--muted)", cursor: "pointer",
+            }}>↻ Refresh</button>
+          )}
+        </div>
+        <p style={{ fontSize: 11, color: "var(--dim)", marginBottom: 12, lineHeight: 1.5 }}>
+          Live AI analysis using current injury reports, waiver rankings and matchup data from across the web.
+        </p>
+        {proactiveBusy
+          ? <Spinner label="Searching the web for this week's data…" />
+          : proactiveText
+            ? <div style={{
+                fontSize: 13, lineHeight: 1.8, color: "#cdd9e5", whiteSpace: "pre-wrap",
+                borderLeft: "2px solid var(--accent)", paddingLeft: 14,
+              }}>
+                {proactiveText}
+              </div>
+            : <div style={{ color: "var(--dim)", fontSize: 13 }}>Loading suggestions…</div>
+        }
+      </Card>
+
+      {/* Trending — with player names */}
       {trending.length > 0 && (
         <Card>
           <SectionTitle>Trending Adds — Last 24h</SectionTitle>
@@ -125,62 +220,92 @@ export default function InSeasonTab({
             className={isMobile ? "scroll-x" : ""}
             style={{ display: "flex", flexWrap: isMobile ? "nowrap" : "wrap", gap: 6, paddingBottom: isMobile ? 4 : 0 }}
           >
-            {trending.slice(0, 15).map((t, i) => (
-              <div key={i} style={{
-                background: "var(--bg)", border: "1px solid var(--border)",
-                borderRadius: 20, padding: "5px 12px", fontSize: 12, color: "var(--muted)",
-                display: "flex", alignItems: "center", gap: 5, flexShrink: 0, minHeight: 32,
-              }}>
-                <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 11 }}>#{i + 1}</span>
-                {t.player_id}
-                <span style={{ color: "var(--dim)", fontSize: 11 }}>{t.count.toLocaleString()}×</span>
-              </div>
-            ))}
+            {trending.slice(0, 15).map((t, i) => {
+              const p = playerMap[t.player_id];
+              const inj = injuryBadge(t.player_id);
+              return (
+                <div key={i} style={{
+                  background: "var(--bg)", border: "1px solid var(--border)",
+                  borderRadius: 8, padding: "6px 12px", fontSize: 12, color: "var(--muted)",
+                  display: "flex", flexDirection: "column", gap: 2, flexShrink: 0,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 11 }}>#{i + 1}</span>
+                    <span style={{ color: "var(--text)", fontWeight: 600 }}>
+                      {p ? `${p.first_name} ${p.last_name}` : t.player_id}
+                    </span>
+                    {inj && (
+                      <span style={{ background: "#e74c3c33", color: "var(--red)", borderRadius: 3, padding: "0 5px", fontSize: 9, fontWeight: 700 }}>
+                        {inj}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, fontSize: 11 }}>
+                    {p?.position && <span style={{ color: "var(--accent)", fontWeight: 600 }}>{p.position}</span>}
+                    {p?.team && <span style={{ color: "var(--dim)" }}>{p.team}</span>}
+                    <span style={{ color: "var(--dim)", marginLeft: "auto" }}>{t.count.toLocaleString()}×</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           {isMobile && <div style={{ fontSize: 10, color: "var(--dim)", marginTop: 6 }}>← scroll for more</div>}
-          <p style={{ fontSize: 11, color: "var(--dim)", marginTop: isMobile ? 4 : 8 }}>
-            Player IDs shown — ask the AI advisor to interpret these by name
-          </p>
         </Card>
       )}
 
-      {/* Transactions with team names */}
+      {/* Transactions with team names + resolved player names */}
       {transactions.length > 0 && (
         <Card>
           <SectionTitle>Recent Transactions — Wk {week}</SectionTitle>
           {transactions.slice(0, 10).map((t, i) => {
             const clr = TX_COLOR[t.type] || TX_COLOR.free_agent;
             const teams = getTxTeams(t);
-            const addedPlayers  = Object.keys(t.adds  || {});
-            const droppedPlayers = Object.keys(t.drops || {});
+            const addedIds   = Object.keys(t.adds  || {});
+            const droppedIds = Object.keys(t.drops || {});
 
             return (
               <div key={i} style={{
-                borderBottom: i < transactions.length - 1 ? "1px solid var(--bg3)" : "none",
+                borderBottom: i < Math.min(transactions.length, 10) - 1 ? "1px solid var(--bg3)" : "none",
                 padding: "10px 0",
               }}>
-                {/* Row 1: type badge + team(s) */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                {/* Type + teams */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <span style={{
                     background: clr.bg, color: clr.text,
                     borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 700, flexShrink: 0,
-                  }}>{t.type}</span>
+                  }}>{t.type.replace("_", " ")}</span>
                   <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>
                     {teams.join(" ↔ ")}
                   </span>
                 </div>
-                {/* Row 2: player movements */}
-                <div style={{ paddingLeft: 4, fontSize: 12, lineHeight: 1.6 }}>
-                  {addedPlayers.length > 0 && (
-                    <div style={{ color: "var(--green)" }}>
-                      + {addedPlayers.join(", ")}
-                    </div>
-                  )}
-                  {droppedPlayers.length > 0 && (
-                    <div style={{ color: "var(--red)" }}>
-                      − {droppedPlayers.join(", ")}
-                    </div>
-                  )}
+                {/* Player movements with names */}
+                <div style={{ paddingLeft: 4, fontSize: 12, lineHeight: 1.7 }}>
+                  {addedIds.map(id => {
+                    const p = playerMap[id];
+                    return (
+                      <div key={id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ color: "var(--green)", fontWeight: 700, fontSize: 13 }}>+</span>
+                        <span style={{ color: "var(--text)", fontWeight: 500 }}>
+                          {p ? `${p.first_name} ${p.last_name}` : id}
+                        </span>
+                        {p?.position && <span style={{ color: "var(--accent)", fontSize: 10, fontWeight: 700 }}>{p.position}</span>}
+                        {p?.team && <span style={{ color: "var(--dim)", fontSize: 11 }}>{p.team}</span>}
+                      </div>
+                    );
+                  })}
+                  {droppedIds.map(id => {
+                    const p = playerMap[id];
+                    return (
+                      <div key={id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ color: "var(--red)", fontWeight: 700, fontSize: 13 }}>−</span>
+                        <span style={{ color: "var(--muted)" }}>
+                          {p ? `${p.first_name} ${p.last_name}` : id}
+                        </span>
+                        {p?.position && <span style={{ color: "var(--dim)", fontSize: 10 }}>{p.position}</span>}
+                        {p?.team && <span style={{ color: "var(--dim)", fontSize: 11 }}>{p.team}</span>}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -188,11 +313,14 @@ export default function InSeasonTab({
         </Card>
       )}
 
-      {/* AI Advisor */}
+      {/* AI Advisor — reactive, also with web search */}
       <Card>
-        <SectionTitle>AI In-Season Advisor</SectionTitle>
+        <SectionTitle>AI Advisor — Ask Anything</SectionTitle>
+        <p style={{ fontSize: 11, color: "var(--dim)", marginBottom: 12, lineHeight: 1.5 }}>
+          Select a mode for a focused analysis, or type your own question. All queries search the web for current data.
+        </p>
 
-        {/* Mode pills — scroll strip on mobile */}
+        {/* Mode pills */}
         <div
           className={isMobile ? "scroll-x" : ""}
           style={{ display: "flex", flexWrap: isMobile ? "nowrap" : "wrap", gap: 6, marginBottom: 12, paddingBottom: isMobile ? 2 : 0 }}
