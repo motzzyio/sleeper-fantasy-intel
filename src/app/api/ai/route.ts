@@ -16,16 +16,16 @@ export async function POST(req: NextRequest) {
     let text = "";
 
     if (useWebSearch) {
-      // Proactive mode: Claude searches the web for current injury/news data
-      const message = await anthropic.messages.create({
+      // Use web search tool — cast to any to bypass SDK version type constraints
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const params: any = {
         model: "claude-sonnet-4-20250514",
         max_tokens: 2000,
         system,
-        tools: [{ type: "web_search_20250305" as const, name: "web_search" }],
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
         messages: [{ role: "user", content: prompt }],
-      });
-
-      // Extract all text blocks (Claude may interleave search results with analysis)
+      };
+      const message = await anthropic.messages.create(params);
       text = message.content
         .filter((b) => b.type === "text")
         .map((b) => (b as { type: "text"; text: string }).text)
@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
         system,
         messages: [{ role: "user", content: prompt }],
       });
-
       text = message.content
         .filter((b) => b.type === "text")
         .map((b) => (b as { type: "text"; text: string }).text)
