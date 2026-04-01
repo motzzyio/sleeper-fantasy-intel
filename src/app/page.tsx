@@ -52,7 +52,7 @@ export default function Home() {
           <button
             onClick={handleSubmit}
             style={{
-              width: "100%", background: "var(--accent)", color: "var(--bg)",
+              width: "100%", background: "linear-gradient(135deg, #6366f1, #8b5cf6)", color: "#fff",
               border: "none", borderRadius: 8, padding: "11px 0",
               fontWeight: 700, fontSize: 14,
             }}
