@@ -1,23 +1,28 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0d1117;
-  --bg2: #161b22;
-  --bg3: #21262d;
-  --border: #30363d;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --dim: #555;
-  --accent: #00d4aa;
-  --accent-dim: #00d4aa22;
-  --accent-border: #00d4aa44;
-  --red: #e74c3c;
-  --green: #27ae60;
-  --blue: #2980b9;
-  --orange: #f39c12;
-  --purple: #8e44ad;
-  --gray: #7f8c8d;
-  --gold: #f1c40f;
+  --bg: #0a0e1a;
+  --bg2: #16213e;
+  --bg3: #1e1b4b;
+  --border: #1e2a4a;
+  --text: #f1f5f9;
+  --text2: #818cf8;
+  --text3: #6b7280;
+  --accent: #6366f1;
+  --accent2: #8b5cf6;
+  --accent-text: #a5b4fc;
+  --red: #dc2626;
+  --green: #059669;
+  --blue: #3b82f6;
+  --orange: #f59e0b;
+  --purple: #7c3aed;
+  --gray: #6b7280;
+  --gold: #f59e0b;
+  --tag-trade: #7c3aed;
+  --tag-waiver: #059669;
+  --tag-injury: #dc2626;
+  --tag-start: #2563eb;
+  --tag-sit: #d97706;
 }
 
 html, body {
@@ -57,4 +62,112 @@ input { font-family: inherit; }
 @media (max-width: 639px) {
   button { min-height: 40px; }
   input  { min-height: 44px; }
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, #1e1b4b, #16213e);
+}
+
+.gradient-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 10px;
+  min-height: 48px;
+  width: 100%;
+  font-size: 14px;
+}
+
+.gradient-btn:active {
+  opacity: 0.85;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 5px;
+  color: #fff;
+  white-space: nowrap;
+  text-align: center;
+  min-width: 44px;
+}
+
+.tag-TRADE  { background: var(--tag-trade); }
+.tag-WAIVER { background: var(--tag-waiver); }
+.tag-INJURY { background: var(--tag-injury); }
+.tag-START  { background: var(--tag-start); }
+.tag-SIT    { background: var(--tag-sit); }
+
+.verdict-ACCEPT  { color: #10b981; font-weight: 700; }
+.verdict-DECLINE { color: #ef4444; font-weight: 700; }
+.verdict-COUNTER { color: #f59e0b; font-weight: 700; }
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.pill-active {
+  background: var(--bg3);
+  color: var(--accent-text);
+  border: none;
+}
+
+.pill-inactive {
+  background: var(--bg2);
+  color: var(--text3);
+  border: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg3);
+  color: var(--accent-text);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  color: var(--accent-text);
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.chip-add {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg2);
+  color: var(--text3);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  border: 1px dashed #374151;
+  cursor: pointer;
+  min-height: 36px;
 }
