@@ -26,7 +26,7 @@
 
   /* Backward-compat aliases for existing component code */
   --muted: var(--text3);
-  --dim: var(--bg3);
+  --dim: var(--text3);
   --accent-dim: #6366f122;
   --accent-border: #6366f133;
 }
