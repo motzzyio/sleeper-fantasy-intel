@@ -2,7 +2,7 @@ import React from "react";
 
 const positionColors: Record<string, { bg: string; color: string }> = {
   QB:  { bg: '#7c3aed', color: '#ddd6fe' },
-  RB:  { bg: '#7c3aed44', color: '#ddd6fe' },
+  RB:  { bg: '#065f46', color: '#6ee7b7' },
   WR:  { bg: '#1d4ed8', color: '#93c5fd' },
   TE:  { bg: '#059669', color: '#6ee7b7' },
   K:   { bg: '#374151', color: '#9ca3af' },
@@ -39,6 +39,7 @@ export const Card = ({ children, style }: { children: React.ReactNode; style?: R
     border: '1px solid var(--border)',
     borderRadius: '12px',
     padding: '14px',
+    marginBottom: '14px',
     ...style
   }}>
     {children}
@@ -46,16 +47,17 @@ export const Card = ({ children, style }: { children: React.ReactNode; style?: R
 );
 
 export const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <div style={{
+  <h3 style={{
     fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '1px',
     textTransform: 'uppercase' as const,
     color: 'var(--accent-text)',
-    marginBottom: '12px'
+    marginBottom: '12px',
+    margin: '0 0 12px 0'
   }}>
     {children}
-  </div>
+  </h3>
 );
 
 export const AIBox = ({ loading, children }: { loading: boolean; children?: React.ReactNode }) => (
@@ -67,9 +69,10 @@ export const AIBox = ({ loading, children }: { loading: boolean; children?: Reac
     fontSize: '13px',
     lineHeight: 1.6,
     color: 'var(--text)',
-    minHeight: '60px'
+    minHeight: '60px',
+    whiteSpace: 'pre-wrap' as const
   }}>
-    {loading ? <Spinner label="Analyzing..." /> : children}
+    {loading ? <Spinner label="Analyzing..." /> : children || <span style={{ color: 'var(--dim)' }}>AI analysis will appear here…</span>}
   </div>
 );
 
