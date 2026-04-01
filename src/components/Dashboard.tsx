@@ -40,7 +40,7 @@ export default function Dashboard({ username, onReset }: Props) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [trending, setTrending] = useState<TrendingPlayer[]>([]);
   const [playerMap, setPlayerMap] = useState<PlayerMap>({});
-  const [tab, setTab] = useState<TabId>("draft");
+  const [tab, setTab] = useState<TabId>("inseason");
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -125,85 +125,83 @@ export default function Dashboard({ username, onReset }: Props) {
   const isLoading = !done && !err;
   const isMobile = useIsMobile();
 
-  const TABS: { id: TabId; label: string }[] = [
-    { id: "draft", label: "🏈 Draft" },
-    { id: "inseason", label: "📅 In-Season" },
-    { id: "standings", label: "🏆 Standings" },
-  ];
-
   return (
     <div style={{
       minHeight: "100vh", background: "var(--bg)", color: "var(--text)",
       fontFamily: "inherit",
     }}>
-      {/* Sticky header */}
-      <div style={{ position: "sticky", top: 0, zIndex: 10, background: "var(--bg)", borderBottom: "1px solid var(--bg3)" }}>
-        <div style={{ maxWidth: 860, margin: "0 auto", padding: isMobile ? "12px 14px 0" : "16px 24px 0" }}>
-
-          {/* Top row */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
-            <div style={{ minWidth: 0, flex: 1, paddingRight: 10 }}>
-              <div style={{ fontSize: 9, color: "var(--accent)", letterSpacing: 3, fontFamily: "monospace", marginBottom: 3 }}>
-                SLEEPER · FANTASY INTEL
-              </div>
-              <h1 style={{
-                fontSize: isMobile ? 17 : 22, fontWeight: 800, color: "var(--text)",
-                lineHeight: 1.2, margin: 0,
-                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-              }}>
-                {lgData?.name || (isLoading ? "Loading…" : "No league found")}
-              </h1>
-              <div style={{ color: "var(--dim)", fontSize: 11, marginTop: 2 }}>
-                @{username} · {nflState?.season || "—"} NFL Season
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              <div style={{
-                background: "var(--accent-dim)", border: "1px solid var(--accent-border)",
-                borderRadius: 8, padding: "6px 12px", fontSize: 11, color: "var(--accent)",
-                fontFamily: "monospace",
-              }}>
-                Wk {nflState?.week || "—"}
-              </div>
-              <button onClick={onReset} style={{
-                background: "var(--bg3)", border: "none", borderRadius: 8,
-                padding: "6px 10px", fontSize: 11, color: "var(--muted)", cursor: "pointer", minHeight: 32,
-              }}>← Back</button>
-            </div>
-          </div>
-
-          {/* League selector */}
-          {leagues.length > 1 && (
-            <div style={{ marginBottom: 10 }}>
-              <div className="scroll-x" style={{ display: "flex", gap: 6, flexWrap: "nowrap", paddingBottom: 4 }}>
-                {leagues.map(l => (
-                  <button key={l.league_id}
-                    onClick={() => nflState && userId && loadLeague(l, nflState, userId)}
-                    style={{
-                      background: selLeague?.league_id === l.league_id ? "var(--accent)" : "var(--bg3)",
-                      color: selLeague?.league_id === l.league_id ? "var(--bg)" : "var(--muted)",
-                      border: "none", borderRadius: 6, padding: "5px 12px",
-                      fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0, minHeight: 32,
-                    }}>{l.name}</button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tabs */}
-          <div className="scroll-x" style={{ display: "flex", gap: 0, flexWrap: "nowrap" }}>
-            {TABS.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)} style={{
-                background: "none", border: "none", flexShrink: 0,
-                borderBottom: tab === t.id ? "2px solid var(--accent)" : "2px solid transparent",
-                color: tab === t.id ? "var(--accent)" : "var(--dim)",
-                padding: isMobile ? "9px 16px" : "10px 20px",
-                fontWeight: 600, fontSize: isMobile ? 12 : 13,
-                cursor: "pointer", marginBottom: -1, minHeight: 40,
-              }}>{t.label}</button>
-            ))}
-          </div>
+      {/* Top bar */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '12px 16px',
+        background: '#0d1220',
+        borderBottom: '1px solid var(--border)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
+      }}>
+        <span style={{ color: '#fff', fontWeight: 800, fontSize: '15px' }}>
+          SLEEPER <span style={{ color: 'var(--accent)' }}>INTEL</span>
+        </span>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button
+            onClick={() => setTab('draft')}
+            style={{
+              background: tab === 'draft' ? 'var(--bg3)' : 'var(--bg2)',
+              border: '1px solid var(--border)',
+              color: tab === 'draft' ? 'var(--accent-text)' : 'var(--text3)',
+              fontSize: '11px',
+              padding: '7px 12px',
+              borderRadius: '8px',
+              minHeight: '36px',
+              cursor: 'pointer'
+            }}
+          >
+            Draft
+          </button>
+          <button
+            onClick={() => setTab('standings')}
+            style={{
+              background: tab === 'standings' ? 'var(--bg3)' : 'var(--bg2)',
+              border: '1px solid var(--border)',
+              color: tab === 'standings' ? 'var(--accent-text)' : 'var(--text3)',
+              fontSize: '11px',
+              padding: '7px 12px',
+              borderRadius: '8px',
+              minHeight: '36px',
+              cursor: 'pointer'
+            }}
+          >
+            Standings
+          </button>
         </div>
+      </div>
+
+      {/* League selector */}
+      <div style={{ padding: '10px 14px', background: '#0d1220' }}>
+        <select
+          value={selLeague?.league_id || ''}
+          onChange={e => {
+            const lg = leagues.find(l => l.league_id === e.target.value);
+            if (lg && nflState && userId) loadLeague(lg, nflState, userId);
+          }}
+          style={{
+            width: '100%',
+            background: 'var(--bg2)',
+            border: '1px solid var(--bg3)',
+            color: 'var(--accent-text)',
+            fontSize: '13px',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            minHeight: '44px'
+          }}
+        >
+          {leagues.map(l => (
+            <option key={l.league_id} value={l.league_id}>{l.name}</option>
+          ))}
+        </select>
       </div>
 
       {/* Content */}
