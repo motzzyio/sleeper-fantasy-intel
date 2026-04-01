@@ -53,7 +53,6 @@ export const SectionTitle = ({ children }: { children: React.ReactNode }) => (
     letterSpacing: '1px',
     textTransform: 'uppercase' as const,
     color: 'var(--accent-text)',
-    marginBottom: '12px',
     margin: '0 0 12px 0'
   }}>
     {children}
