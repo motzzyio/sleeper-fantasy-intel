@@ -158,7 +158,7 @@ export default function Dashboard({ username, onReset }: Props) {
           >
             ←
           </button>
-          <span style={{ color: '#fff', fontWeight: 800, fontSize: '15px' }}>
+          <span style={{ color: 'var(--text)', fontWeight: 800, fontSize: '15px' }}>
             SLEEPER <span style={{ color: 'var(--accent)' }}>INTEL</span>
           </span>
         </div>
