@@ -1,18 +1,26 @@
 import React from "react";
 
-const POS_CLR: Record<string, string> = {
-  QB: "#e74c3c", RB: "#27ae60", WR: "#2980b9",
-  TE: "#f39c12", K: "#8e44ad", DEF: "#7f8c8d", DST: "#7f8c8d",
+const positionColors: Record<string, { bg: string; color: string }> = {
+  QB:  { bg: '#7c3aed', color: '#ddd6fe' },
+  RB:  { bg: '#7c3aed44', color: '#ddd6fe' },
+  WR:  { bg: '#1d4ed8', color: '#93c5fd' },
+  TE:  { bg: '#059669', color: '#6ee7b7' },
+  K:   { bg: '#374151', color: '#9ca3af' },
+  DEF: { bg: '#374151', color: '#9ca3af' },
+  DST: { bg: '#374151', color: '#9ca3af' },
 };
-export const posColor = (pos: string) => POS_CLR[pos] || "#555";
+export const posColor = (pos: string) => positionColors[pos]?.bg || "#555";
 
-export const Badge = ({ pos }: { pos: string }) => (
-  <span style={{
-    background: posColor(pos), color: "#fff", borderRadius: 4,
-    padding: "1px 7px", fontSize: 11, fontWeight: 700, letterSpacing: 1,
-    fontFamily: "monospace", display: "inline-block",
-  }}>{pos}</span>
-);
+export const Badge = ({ pos }: { pos: string }) => {
+  const colors = positionColors[pos] || { bg: '#555', color: '#fff' };
+  return (
+    <span style={{
+      background: colors.bg, color: colors.color, borderRadius: 4,
+      padding: "1px 7px", fontSize: 11, fontWeight: 700, letterSpacing: 1,
+      fontFamily: "monospace", display: "inline-block",
+    }}>{pos}</span>
+  );
+};
 
 export const Spinner = ({ label = "Loading…" }: { label?: string }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--muted)", fontSize: 13, padding: "16px 0" }}>
@@ -25,29 +33,43 @@ export const Spinner = ({ label = "Loading…" }: { label?: string }) => (
   </div>
 );
 
-export const Card = ({ children, style = {} }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+export const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
   <div style={{
-    background: "var(--bg2)", border: "1px solid var(--border)",
-    borderRadius: 10, padding: 18, marginBottom: 14, ...style,
-  }}>{children}</div>
+    background: 'var(--bg2)',
+    border: '1px solid var(--border)',
+    borderRadius: '12px',
+    padding: '14px',
+    ...style
+  }}>
+    {children}
+  </div>
 );
 
 export const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <h3 style={{
-    color: "var(--accent)", fontSize: 10, letterSpacing: 2,
-    textTransform: "uppercase", margin: "0 0 14px", fontFamily: "monospace",
-  }}>{children}</h3>
+  <div style={{
+    fontSize: '11px',
+    fontWeight: 700,
+    letterSpacing: '1px',
+    textTransform: 'uppercase' as const,
+    color: 'var(--accent-text)',
+    marginBottom: '12px'
+  }}>
+    {children}
+  </div>
 );
 
-export const AIBox = ({ text, loading }: { text: string; loading: boolean }) => (
+export const AIBox = ({ loading, children }: { loading: boolean; children?: React.ReactNode }) => (
   <div style={{
-    background: "var(--bg)", border: "1px solid var(--accent-border)",
-    borderRadius: 8, padding: 14, marginTop: 12, fontSize: 13.5,
-    lineHeight: 1.8, color: "#cdd9e5", whiteSpace: "pre-wrap", minHeight: 52,
+    background: 'var(--bg3)',
+    border: '1px solid var(--border)',
+    borderRadius: '10px',
+    padding: '14px',
+    fontSize: '13px',
+    lineHeight: 1.6,
+    color: 'var(--text)',
+    minHeight: '60px'
   }}>
-    {loading
-      ? <Spinner label="Claude is analysing your league…" />
-      : text || <span style={{ color: "var(--dim)" }}>AI analysis will appear here…</span>}
+    {loading ? <Spinner label="Analyzing..." /> : children}
   </div>
 );
 
@@ -58,16 +80,24 @@ export const StatBox = ({ label, value }: { label: string; value: React.ReactNod
   </div>
 );
 
-export const Tab = ({
-  label, active, onClick,
-}: { label: string; active: boolean; onClick: () => void }) => (
-  <button onClick={onClick} style={{
-    background: "none", border: "none",
-    borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
-    color: active ? "var(--accent)" : "var(--dim)",
-    padding: "9px 16px", fontWeight: 600, fontSize: 13,
-    cursor: "pointer", marginBottom: -1, transition: "color .15s",
-  }}>{label}</button>
+export const Tab = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+  <button
+    onClick={onClick}
+    style={{
+      background: active ? 'var(--bg3)' : 'transparent',
+      border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border)'),
+      color: active ? 'var(--accent-text)' : 'var(--text3)',
+      padding: '7px 14px',
+      borderRadius: '8px',
+      fontSize: '11px',
+      fontWeight: active ? 700 : 400,
+      cursor: 'pointer',
+      minHeight: '36px',
+      whiteSpace: 'nowrap' as const
+    }}
+  >
+    {children}
+  </button>
 );
 
 export const AIInput = ({

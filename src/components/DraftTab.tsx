@@ -215,7 +215,7 @@ QUESTION: ${query || "Analyse this league's draft tendencies — which positions
           placeholder="Ask anything about your draft… or leave blank for full analysis"
           loading={busy}
         />
-        <AIBox text={aiText} loading={busy} />
+        <AIBox loading={busy}>{aiText}</AIBox>
       </Card>
     </div>
   );

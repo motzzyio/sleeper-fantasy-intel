@@ -343,7 +343,7 @@ Search the web for current Week ${week} injury news, waiver wire rankings, and m
           placeholder="Ask a specific question, or hit Analyse for the selected mode…"
           loading={busy}
         />
-        <AIBox text={aiText} loading={busy} />
+        <AIBox loading={busy}>{aiText}</AIBox>
       </Card>
     </div>
   );
