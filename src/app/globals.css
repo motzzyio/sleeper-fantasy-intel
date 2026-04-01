@@ -17,12 +17,18 @@
   --orange: #f59e0b;
   --purple: #7c3aed;
   --gray: #6b7280;
-  --gold: #f59e0b;
+  --gold: #fbbf24;
   --tag-trade: #7c3aed;
   --tag-waiver: #059669;
   --tag-injury: #dc2626;
   --tag-start: #2563eb;
   --tag-sit: #d97706;
+
+  /* Backward-compat aliases for existing component code */
+  --muted: var(--text3);
+  --dim: var(--bg3);
+  --accent-dim: #6366f122;
+  --accent-border: #6366f133;
 }
 
 html, body {
@@ -65,7 +71,7 @@ input { font-family: inherit; }
 }
 
 .gradient-hero {
-  background: linear-gradient(135deg, #1e1b4b, #16213e);
+  background: linear-gradient(135deg, var(--bg3), var(--bg2));
 }
 
 .gradient-btn {
@@ -102,9 +108,9 @@ input { font-family: inherit; }
 .tag-START  { background: var(--tag-start); }
 .tag-SIT    { background: var(--tag-sit); }
 
-.verdict-ACCEPT  { color: #10b981; font-weight: 700; }
-.verdict-DECLINE { color: #ef4444; font-weight: 700; }
-.verdict-COUNTER { color: #f59e0b; font-weight: 700; }
+.verdict-ACCEPT  { color: var(--green); font-weight: 700; }
+.verdict-DECLINE { color: var(--red); font-weight: 700; }
+.verdict-COUNTER { color: var(--orange); font-weight: 700; }
 
 .pulse-dot {
   width: 7px;
@@ -167,7 +173,7 @@ input { font-family: inherit; }
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 12px;
-  border: 1px dashed #374151;
+  border: 1px dashed var(--border);
   cursor: pointer;
   min-height: 36px;
 }
