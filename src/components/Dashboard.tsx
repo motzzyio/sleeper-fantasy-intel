@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
-import { Spinner, LoadProgress } from "./ui";
+import { Spinner, LoadProgress, Tab } from "./ui";
 import { useIsMobile } from "@/lib/useIsMobile";
 import DraftTab from "./DraftTab";
 import InSeasonTab from "./InSeasonTab";
@@ -136,73 +136,64 @@ export default function Dashboard({ username, onReset }: Props) {
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '12px 16px',
-        background: '#0d1220',
+        background: 'var(--bg)',
         borderBottom: '1px solid var(--border)',
         position: 'sticky',
         top: 0,
         zIndex: 100
       }}>
-        <span style={{ color: '#fff', fontWeight: 800, fontSize: '15px' }}>
-          SLEEPER <span style={{ color: 'var(--accent)' }}>INTEL</span>
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={onReset}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text3)',
+              fontSize: '18px',
+              cursor: 'pointer',
+              padding: '0',
+              lineHeight: 1
+            }}
+            aria-label="Back"
+          >
+            ←
+          </button>
+          <span style={{ color: '#fff', fontWeight: 800, fontSize: '15px' }}>
+            SLEEPER <span style={{ color: 'var(--accent)' }}>INTEL</span>
+          </span>
+        </div>
         <div style={{ display: 'flex', gap: '6px' }}>
-          <button
-            onClick={() => setTab('draft')}
-            style={{
-              background: tab === 'draft' ? 'var(--bg3)' : 'var(--bg2)',
-              border: '1px solid var(--border)',
-              color: tab === 'draft' ? 'var(--accent-text)' : 'var(--text3)',
-              fontSize: '11px',
-              padding: '7px 12px',
-              borderRadius: '8px',
-              minHeight: '36px',
-              cursor: 'pointer'
-            }}
-          >
-            Draft
-          </button>
-          <button
-            onClick={() => setTab('standings')}
-            style={{
-              background: tab === 'standings' ? 'var(--bg3)' : 'var(--bg2)',
-              border: '1px solid var(--border)',
-              color: tab === 'standings' ? 'var(--accent-text)' : 'var(--text3)',
-              fontSize: '11px',
-              padding: '7px 12px',
-              borderRadius: '8px',
-              minHeight: '36px',
-              cursor: 'pointer'
-            }}
-          >
-            Standings
-          </button>
+          <Tab active={tab === 'draft'} onClick={() => setTab('draft')}>Draft</Tab>
+          <Tab active={tab === 'standings'} onClick={() => setTab('standings')}>Standings</Tab>
         </div>
       </div>
 
       {/* League selector */}
-      <div style={{ padding: '10px 14px', background: '#0d1220' }}>
-        <select
-          value={selLeague?.league_id || ''}
-          onChange={e => {
-            const lg = leagues.find(l => l.league_id === e.target.value);
-            if (lg && nflState && userId) loadLeague(lg, nflState, userId);
-          }}
-          style={{
-            width: '100%',
-            background: 'var(--bg2)',
-            border: '1px solid var(--bg3)',
-            color: 'var(--accent-text)',
-            fontSize: '13px',
-            padding: '10px 12px',
-            borderRadius: '8px',
-            minHeight: '44px'
-          }}
-        >
-          {leagues.map(l => (
-            <option key={l.league_id} value={l.league_id}>{l.name}</option>
-          ))}
-        </select>
-      </div>
+      {leagues.length > 1 && (
+        <div style={{ padding: '10px 14px', background: 'var(--bg)' }}>
+          <select
+            value={selLeague?.league_id || ''}
+            onChange={e => {
+              const lg = leagues.find(l => l.league_id === e.target.value);
+              if (lg && nflState && userId) loadLeague(lg, nflState, userId);
+            }}
+            style={{
+              width: '100%',
+              background: 'var(--bg2)',
+              border: '1px solid var(--bg3)',
+              color: 'var(--accent-text)',
+              fontSize: '13px',
+              padding: '10px 12px',
+              borderRadius: '8px',
+              minHeight: '44px'
+            }}
+          >
+            {leagues.map(l => (
+              <option key={l.league_id} value={l.league_id}>{l.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Content */}
       <div style={{ maxWidth: 860, margin: "0 auto", padding: isMobile ? "16px 14px 48px" : "20px 24px 48px" }}>
