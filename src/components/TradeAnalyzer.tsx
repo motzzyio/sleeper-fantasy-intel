@@ -6,6 +6,8 @@ import { Spinner } from './ui';
 
 type TradeVerdict = 'ACCEPT' | 'DECLINE' | 'COUNTER';
 
+const VALID_TRADE_VERDICTS: TradeVerdict[] = ['ACCEPT', 'DECLINE', 'COUNTER'];
+
 interface TradeResult {
   verdict: TradeVerdict;
   reasoning: string[];
@@ -16,7 +18,7 @@ function parseTradeResult(raw: string): TradeResult | null {
   try {
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const parsed = JSON.parse(cleaned);
-    if (!parsed.verdict || !Array.isArray(parsed.reasoning)) return null;
+    if (!VALID_TRADE_VERDICTS.includes(parsed.verdict) || !Array.isArray(parsed.reasoning)) return null;
     return {
       verdict: parsed.verdict as TradeVerdict,
       reasoning: parsed.reasoning,

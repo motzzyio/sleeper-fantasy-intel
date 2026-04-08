@@ -181,7 +181,7 @@ Rank the best available waiver wire pickups for my specific roster needs. Use cu
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px', flexWrap: 'wrap' as const }}>
-                  <span style={{ color: '#f1f5f9', fontSize: '13px', fontWeight: 700 }}>{player.name}</span>
+                  <span style={{ color: 'var(--text)', fontSize: '13px', fontWeight: 700 }}>{player.name}</span>
                   <Badge pos={player.position} />
                   {player.injuryStatus && (
                     <span style={{
