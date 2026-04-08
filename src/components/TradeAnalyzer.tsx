@@ -62,17 +62,17 @@ export function TradeAnalyzer({ rosterPlayerNames, leagueContext, week }: TradeA
   const removeGet = (name: string) => setGetChips(prev => prev.filter(p => p !== name));
 
   const analyze = async () => {
-    if (giveChips.length === 0 && getChips.length === 0) return;
+    if (giveChips.length === 0 || getChips.length === 0) return;
     setLoading(true);
     setResult(null);
     setRawResult('');
-
-    const system = `You are an expert fantasy football trade analyst. Respond ONLY with a valid JSON object. No explanation outside the JSON.
+    try {
+      const system = `You are an expert fantasy football trade analyst. Respond ONLY with a valid JSON object. No explanation outside the JSON.
 Schema: { "verdict": "ACCEPT" | "DECLINE" | "COUNTER", "reasoning": string[], "counter": string | null }
 reasoning: 3-4 bullet strings explaining the verdict.
 counter: a suggested counter-offer as a string, or null if not applicable.`;
 
-    const prompt = `NFL Week ${week}. ${leagueContext}
+      const prompt = `NFL Week ${week}. ${leagueContext}
 
 My full roster: ${rosterPlayerNames.join(', ')}
 
@@ -82,11 +82,15 @@ Proposed trade:
 
 Should I do this trade? Use current injury news and player values.`;
 
-    const raw = await askAIWithSearch(system, prompt);
-    setRawResult(raw);
-    const parsed = parseTradeResult(raw);
-    setResult(parsed);
-    setLoading(false);
+      const raw = await askAIWithSearch(system, prompt);
+      setRawResult(raw);
+      const parsed = parseTradeResult(raw);
+      setResult(parsed);
+    } catch {
+      setRawResult('Error analyzing trade. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -192,8 +196,8 @@ Should I do this trade? Use current injury news and player values.`;
       <button
         className="gradient-btn"
         onClick={analyze}
-        disabled={loading || (giveChips.length === 0 && getChips.length === 0)}
-        style={{ opacity: (loading || (giveChips.length === 0 && getChips.length === 0)) ? 0.5 : 1 }}
+        disabled={loading || (giveChips.length === 0 || getChips.length === 0)}
+        style={{ opacity: (loading || (giveChips.length === 0 || getChips.length === 0)) ? 0.5 : 1 }}
       >
         Analyze Trade
       </button>
@@ -224,7 +228,7 @@ Should I do this trade? Use current injury news and player values.`;
             <div style={{
               marginTop: '10px',
               padding: '10px',
-              background: '#1a1740',
+              background: 'var(--bg3)',
               borderRadius: '6px',
               color: 'var(--accent-text)',
               fontSize: '12px'

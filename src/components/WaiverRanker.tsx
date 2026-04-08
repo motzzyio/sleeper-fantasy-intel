@@ -16,6 +16,8 @@ interface WaiverPlayer {
   injuryStatus: string | null;
 }
 
+const VALID_VERDICTS: WaiverVerdict[] = ['Must Add', 'Streamable', 'Stash'];
+
 function parseWaiverPlayers(raw: string): WaiverPlayer[] {
   try {
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -29,6 +31,7 @@ function parseWaiverPlayers(raw: string): WaiverPlayer[] {
         typeof obj.position === 'string' &&
         typeof obj.team === 'string' &&
         typeof obj.verdict === 'string' &&
+        VALID_VERDICTS.includes(obj.verdict as WaiverVerdict) &&
         typeof obj.reason === 'string'
       );
     }).map((p: Record<string, unknown>) => ({
@@ -67,14 +70,14 @@ export function WaiverRanker({ rosterSummary, trendingPlayerNames, leagueContext
   const fetchWaivers = async () => {
     setLoading(true);
     setPlayers([]);
-
-    const system = `You are an expert fantasy football waiver wire analyst. Respond ONLY with a valid JSON array. No other text.
+    try {
+      const system = `You are an expert fantasy football waiver wire analyst. Respond ONLY with a valid JSON array. No other text.
 Each element: { "name": string, "position": "QB"|"RB"|"WR"|"TE", "team": string, "verdict": "Must Add"|"Streamable"|"Stash", "reason": string, "injuryStatus": string | null }
 "reason": one sentence why this player matters for this specific roster.
 "injuryStatus": current injury designation (e.g. "Questionable", "Doubtful") or null if healthy.
 Return up to 8 players ranked by priority for this roster. Exclude players already on the roster.`;
 
-    const prompt = `NFL Week ${week}. ${leagueContext}
+      const prompt = `NFL Week ${week}. ${leagueContext}
 
 My roster: ${rosterSummary}
 
@@ -82,12 +85,17 @@ Currently trending adds (league-wide): ${trendingPlayerNames.slice(0, 15).join('
 
 Rank the best available waiver wire pickups for my specific roster needs. Use current injury news.`;
 
-    const raw = await askAIWithSearch(system, prompt);
-    setPlayers(parseWaiverPlayers(raw));
-    setLoading(false);
+      const raw = await askAIWithSearch(system, prompt);
+      setPlayers(parseWaiverPlayers(raw));
+    } catch {
+      setPlayers([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchWaivers(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchWaivers(); }, [week, rosterSummary, leagueContext]);
 
   const filtered = filter === 'All' ? players : players.filter(p => p.position === filter);
 
@@ -162,7 +170,7 @@ Rank the best available waiver wire pickups for my specific roster needs. Use cu
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {filtered.map((player, i) => (
             <div key={i} style={{
-              background: '#1a1740',
+              background: 'var(--bg3)',
               borderRadius: '8px',
               padding: '12px',
               display: 'flex',

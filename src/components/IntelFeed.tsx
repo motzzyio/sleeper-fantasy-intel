@@ -37,27 +37,33 @@ export function IntelFeed({ rosterSummary, leagueContext, week }: IntelFeedProps
   const fetchIntel = async () => {
     setLoading(true);
     setItems([]);
-    const system = `You are an expert fantasy football analyst. Return exactly 5 action items for a fantasy manager.
+    try {
+      const system = `You are an expert fantasy football analyst. Return exactly 5 action items for a fantasy manager.
 Each item MUST start with a tag: [TRADE], [WAIVER], [INJURY], [START], or [SIT].
 Format: [TAG] One clear, specific sentence of advice.
 No other text. No numbering. No blank lines between items.`;
 
-    const prompt = `NFL Week ${week}. ${leagueContext}
+      const prompt = `NFL Week ${week}. ${leagueContext}
 
 My roster: ${rosterSummary}
 
 Give me 5 prioritized action items right now. Use current injury news and waiver wire availability.`;
 
-    const result = await askAIWithSearch(system, prompt);
-    setItems(parseIntelItems(result));
-    setLoading(false);
+      const result = await askAIWithSearch(system, prompt);
+      setItems(parseIntelItems(result));
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchIntel(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchIntel(); }, [week, rosterSummary, leagueContext]);
 
   return (
     <div style={{
-      background: '#13103d',
+      background: 'var(--bg2)',
       border: '1px solid #312e8155',
       borderRadius: '12px',
       padding: '14px',
@@ -116,7 +122,7 @@ Give me 5 prioritized action items right now. Use current injury news and waiver
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {items.map((item, i) => (
             <div key={i} style={{
-              background: '#1a1740',
+              background: 'var(--bg3)',
               borderRadius: '8px',
               padding: '12px',
               display: 'flex',
