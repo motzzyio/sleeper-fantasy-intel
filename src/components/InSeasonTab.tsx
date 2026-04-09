@@ -71,13 +71,6 @@ export default function InSeasonTab({
     return `${p.first_name} ${p.last_name}${pos}${team}`;
   };
 
-  // Injury badge for trending players
-  const injuryBadge = (id: string): string | null => {
-    const p = playerMap[id];
-    if (!p?.injury_status) return null;
-    return p.injury_status;
-  };
-
   // ── Transaction helpers ────────────────────────────────────────────────────
   const getTxTeams = (tx: Transaction): string[] => {
     const ids = new Set<number>();
@@ -88,31 +81,7 @@ export default function InSeasonTab({
   };
 
   // ── Build roster context for AI (names, not IDs) ───────────────────────────
-  const myRosterNames = (myRoster?.players || []).map(id => playerName(id)).join(", ");
   const myStarterNames = (myRoster?.starters || []).map(id => playerName(id)).join(", ");
-
-  // ── Reactive AI (mode-based) ───────────────────────────────────────────────
-  const modePrompts: Record<string, string> = {
-    waiver: `Week ${week} waiver wire advice. Trending adds (last 24h): ${trending.slice(0, 10).map((t, i) => `#${i + 1} ${playerName(t.player_id)} — ${t.count} adds`).join(", ")}. My roster: ${myRosterNames}. Who should I target on waivers and who is safe to drop? Search for current week waiver wire rankings to support your answer.`,
-    startsit: `Optimise my Week ${week} lineup. My current starters: ${myStarterNames}. My full roster: ${myRosterNames}. Search for Week ${week} matchup-based start/sit analysis and injury reports. Who should I start or sit? Flag any clear upgrades from my bench.`,
-    trade: `Trade strategy for Week ${week}. My roster: ${myRosterNames}. Search for current player values and trade advice. Give me: (1) who to sell high on, (2) what positions to buy, (3) a specific trade target strategy.`,
-    injury: `Week ${week} injury and bye planning. My roster: ${myRosterNames}. Search for the latest injury reports and bye week schedules for weeks ${week}–${week + 2}. Flag any players I need to address urgently and suggest contingency moves.`,
-  };
-
-  const runAI = async () => {
-    setBusy(true);
-    setAiText("");
-    const sc = league.scoring_settings;
-    const system = `You are a sharp fantasy football in-season manager with access to web search. Search for current Week ${week} NFL data to support your advice. Give specific, actionable recommendations. Use bullet points. Keep under 450 words.`;
-    const prompt = `LEAGUE: ${league.name} | Week ${week} | PPR:${sc.rec ?? 0} | Teams:${league.settings.num_teams}\n${query ? `QUESTION: ${query}\nMy roster: ${myRosterNames}` : modePrompts[mode]}`;
-    try {
-      // Reactive queries also use web search for current data
-      setAiText(await askAIWithSearch(system, prompt));
-    } catch {
-      setAiText("Error fetching AI analysis. Check your API key.");
-    }
-    setBusy(false);
-  };
 
   // Plain-English roster summary for AI prompts
   const rosterSummary = myRoster?.players
@@ -121,6 +90,29 @@ export default function InSeasonTab({
       return p ? `${p.first_name} ${p.last_name} (${p.position}, ${p.team})` : id;
     })
     .join(', ') ?? 'Unknown roster';
+
+  // ── Reactive AI (mode-based) ───────────────────────────────────────────────
+  const modePrompts: Record<string, string> = {
+    waiver: `Week ${week} waiver wire advice. Trending adds (last 24h): ${trending.slice(0, 10).map((t, i) => `#${i + 1} ${playerName(t.player_id)} — ${t.count} adds`).join(", ")}. My roster: ${rosterSummary}. Who should I target on waivers and who is safe to drop? Search for current week waiver wire rankings to support your answer.`,
+    startsit: `Optimise my Week ${week} lineup. My current starters: ${myStarterNames}. My full roster: ${rosterSummary}. Search for Week ${week} matchup-based start/sit analysis and injury reports. Who should I start or sit? Flag any clear upgrades from my bench.`,
+    trade: `Trade strategy for Week ${week}. My roster: ${rosterSummary}. Search for current player values and trade advice. Give me: (1) who to sell high on, (2) what positions to buy, (3) a specific trade target strategy.`,
+    injury: `Week ${week} injury and bye planning. My roster: ${rosterSummary}. Search for the latest injury reports and bye week schedules for weeks ${week}–${week + 2}. Flag any players I need to address urgently and suggest contingency moves.`,
+  };
+
+  const runAI = async () => {
+    setBusy(true);
+    setAiText("");
+    const sc = league.scoring_settings;
+    const system = `You are a sharp fantasy football in-season manager with access to web search. Search for current Week ${week} NFL data to support your advice. Give specific, actionable recommendations. Use bullet points. Keep under 450 words.`;
+    const prompt = `LEAGUE: ${league.name} | Week ${week} | PPR:${sc.rec ?? 0} | Teams:${league.settings.num_teams}\n${query ? `QUESTION: ${query}\nMy roster: ${rosterSummary}` : modePrompts[mode]}`;
+    try {
+      // Reactive queries also use web search for current data
+      setAiText(await askAIWithSearch(system, prompt));
+    } catch {
+      setAiText("Error fetching AI analysis. Check your API key.");
+    }
+    setBusy(false);
+  };
 
   // Roster player names for TradeAnalyzer dropdown
   const rosterPlayerNames = myRoster?.players
@@ -164,7 +156,7 @@ export default function InSeasonTab({
             color: '#818cf8', fontSize: '10px', fontWeight: 700,
             letterSpacing: '1.5px', marginBottom: '8px'
           }}>
-            WEEK {nflState?.week} · {myMatchup.points > (opponentMatchup?.points ?? 0) ? 'PROJECTED WIN' : 'PROJECTED LOSS'}
+            WEEK {week} · {myMatchup.points > (opponentMatchup?.points ?? 0) ? 'PROJECTED WIN' : 'PROJECTED LOSS'}
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '6px' }}>
             <span style={{ color: 'var(--text)', fontSize: '32px', fontWeight: 800 }}>
@@ -197,7 +189,7 @@ export default function InSeasonTab({
         <IntelFeed
           rosterSummary={rosterSummary}
           leagueContext={leagueContext}
-          week={nflState?.week ?? 1}
+          week={week}
         />
       </div>
 
@@ -206,7 +198,7 @@ export default function InSeasonTab({
         <TradeAnalyzer
           rosterPlayerNames={rosterPlayerNames}
           leagueContext={leagueContext}
-          week={nflState?.week ?? 1}
+          week={week}
         />
       </div>
 
@@ -216,7 +208,7 @@ export default function InSeasonTab({
           rosterSummary={rosterSummary}
           trendingPlayerNames={trendingPlayerNames}
           leagueContext={leagueContext}
-          week={nflState?.week ?? 1}
+          week={week}
         />
       </div>
 
