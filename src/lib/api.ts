@@ -30,8 +30,8 @@ export const askAI = async (system: string, prompt: string): Promise<string> => 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ system, prompt, useWebSearch: false }),
   });
-  if (!res.ok) throw new Error("AI request failed");
   const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || data.error || "AI request failed");
   return data.text ?? "";
 };
 
@@ -42,7 +42,7 @@ export const askAIWithSearch = async (system: string, prompt: string): Promise<s
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ system, prompt, useWebSearch: true }),
   });
-  if (!res.ok) throw new Error("AI request failed");
   const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || data.error || "AI request failed");
   return data.text ?? "";
 };

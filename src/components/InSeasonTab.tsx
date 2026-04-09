@@ -108,8 +108,9 @@ export default function InSeasonTab({
     try {
       // Reactive queries also use web search for current data
       setAiText(await askAIWithSearch(system, prompt));
-    } catch {
-      setAiText("Error fetching AI analysis. Check your API key.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setAiText(`Error: ${msg}`);
     }
     setBusy(false);
   };

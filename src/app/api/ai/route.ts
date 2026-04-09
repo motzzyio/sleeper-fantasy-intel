@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.error("ANTHROPIC_API_KEY is not set");
+}
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
@@ -19,7 +23,7 @@ export async function POST(req: NextRequest) {
       // Use web search tool — cast to any to bypass SDK version type constraints
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const params: any = {
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 2000,
         system,
         tools: [{ type: "web_search_20250305", name: "web_search" }],
@@ -34,7 +38,7 @@ export async function POST(req: NextRequest) {
     } else {
       // Standard mode: no web search
       const message = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 1500,
         system,
         messages: [{ role: "user", content: prompt }],
@@ -47,8 +51,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ text });
 
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("AI route error:", err);
-    return NextResponse.json({ error: "AI request failed" }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: "AI request failed", detail: message }, { status: 500 });
   }
 }

@@ -80,8 +80,9 @@ QUESTION: ${query || "Analyse this league's draft tendencies — which positions
     try {
       const res = await askAI(system, prompt);
       setAiText(res);
-    } catch {
-      setAiText("Error fetching AI analysis. Check your API key.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setAiText(`Error: ${msg}`);
     }
     setBusy(false);
   };
