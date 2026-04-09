@@ -131,6 +131,15 @@ export default function InSeasonTab({
     })
     .filter((name): name is string => name !== null) ?? [];
 
+  // All players rostered across every team in the league — used to filter waivers
+  const allRosteredPlayerNames = rosters
+    .flatMap(r => r.players || [])
+    .map(id => {
+      const p = playerMap[id];
+      return p ? `${p.first_name} ${p.last_name}` : null;
+    })
+    .filter((name): name is string => name !== null);
+
   // Shared league context string
   const leagueContext = `${league?.settings?.num_teams ?? 12}-team league, ${
     league?.scoring_settings?.rec ? 'PPR' : 'standard'
@@ -208,8 +217,11 @@ export default function InSeasonTab({
         <WaiverRanker
           rosterSummary={rosterSummary}
           trendingPlayerNames={trendingPlayerNames}
+          allRosteredPlayerNames={allRosteredPlayerNames}
           leagueContext={leagueContext}
           week={week}
+          season={nflState.season}
+          seasonType={nflState.season_type}
         />
       </div>
 

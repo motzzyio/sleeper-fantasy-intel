@@ -58,11 +58,14 @@ const POSITIONS: PositionFilter[] = ['All', 'QB', 'RB', 'WR', 'TE'];
 interface WaiverRankerProps {
   rosterSummary: string;
   trendingPlayerNames: string[];
+  allRosteredPlayerNames: string[];
   leagueContext: string;
   week: number;
+  season: string;
+  seasonType: string;
 }
 
-export function WaiverRanker({ rosterSummary, trendingPlayerNames, leagueContext, week }: WaiverRankerProps) {
+export function WaiverRanker({ rosterSummary, trendingPlayerNames, allRosteredPlayerNames, leagueContext, week, season, seasonType }: WaiverRankerProps) {
   const [players, setPlayers] = useState<WaiverPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<PositionFilter>('All');
@@ -71,19 +74,30 @@ export function WaiverRanker({ rosterSummary, trendingPlayerNames, leagueContext
     setLoading(true);
     setPlayers([]);
     try {
+      const seasonLabel = seasonType === 'regular'
+        ? `NFL ${season} Season Week ${week}`
+        : `NFL ${season} Season (most recent data)`;
+
+      // Cap the rostered list to avoid prompt bloat — names are short so 300 is fine
+      const rosteredList = allRosteredPlayerNames.slice(0, 300).join(', ');
+
       const system = `You are an expert fantasy football waiver wire analyst. Respond ONLY with a valid JSON array. No other text.
 Each element: { "name": string, "position": "QB"|"RB"|"WR"|"TE", "team": string, "verdict": "Must Add"|"Streamable"|"Stash", "reason": string, "injuryStatus": string | null }
 "reason": one sentence why this player matters for this specific roster.
 "injuryStatus": current injury designation (e.g. "Questionable", "Doubtful") or null if healthy.
-Return up to 8 players ranked by priority for this roster. Exclude players already on the roster.`;
+Return up to 8 players ranked by priority for this roster.
+CRITICAL: Only suggest players who are NOT in the rostered players list. Search for the most current and up-to-date player news available — do not use data from past weeks.`;
 
-      const prompt = `NFL Week ${week}. ${leagueContext}
+      const prompt = `${seasonLabel}. ${leagueContext}
 
 My roster: ${rosterSummary}
 
-Currently trending adds (league-wide): ${trendingPlayerNames.slice(0, 15).join(', ')}
+ALL players already rostered in this league (do NOT suggest any of these — they are unavailable on waivers):
+${rosteredList}
 
-Rank the best available waiver wire pickups for my specific roster needs. Use current injury news.`;
+Currently trending waiver adds (league-wide): ${trendingPlayerNames.slice(0, 15).join(', ')}
+
+Search for the most current NFL player news, injury updates, and usage trends. Rank the best truly available waiver wire pickups for my specific roster needs.`;
 
       const raw = await askAIWithSearch(system, prompt);
       setPlayers(parseWaiverPlayers(raw));
@@ -95,7 +109,7 @@ Rank the best available waiver wire pickups for my specific roster needs. Use cu
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchWaivers(); }, [week, rosterSummary, leagueContext]);
+  useEffect(() => { fetchWaivers(); }, [week, season, rosterSummary, leagueContext]);
 
   const filtered = filter === 'All' ? players : players.filter(p => p.position === filter);
 
